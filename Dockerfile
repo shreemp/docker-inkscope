@@ -3,7 +3,6 @@ FROM ubuntu:latest
 
 # NOTE : Comment the "export http-s_proxy ..." lines if you don't need to go through a proxy
 #        If you need it, replace the {username}, {password}, {proxy} and {port} fields
-# TODO : export http-s_proxy
 
 ### PREQUISITIES ###
 # Install curl, wget and apache2 using apt-get #
