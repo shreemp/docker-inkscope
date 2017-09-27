@@ -67,13 +67,13 @@ RUN export http_proxy=http://{username}:{password}@{proxy}:{port} \
 RUN mkdir -pv /opt/inkscope/etc /opt/inkscope/bin
 WORKDIR /opt/inkscope/
 # Please make sure you have modified inkscope-template.conf correctly
-# Here are the fields you have to change : mongoDB parameters, ceph-rest-api URL (finishing with /), radosgw parameters ( do not forget to grant the required capabilities [usage, users, metadata, buckets] to the admin-user)
+# Here are the fields you have to change : mongoDB parameters, ceph-rest-api URL (finishing with /), radosgw parameters
 RUN cp /var/www/inkscope/inkscope-template.conf etc/inkscope.conf \
 && cp /var/www/inkscope/inkscopeProbe/cephprobe.py bin/ \
 && cp /var/www/inkscope/inkscopeProbe/sysprobe.py bin/ \
 && cp /var/www/inkscope/inkscopeProbe/daemon.py bin/
 
-# Create the user admin ("system" and all capabilities) #
+# Create the admin user ("system" and all capabilities) #
 # User creation fields have to match with those in inkscope-template.conf
 # And the "radosgw_admin" should match the ceph config parameter rgw_admin_entry (default is admin)
 RUN export http_proxy=http://{username}:{password}@{proxy}:{port} \
