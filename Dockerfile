@@ -2,19 +2,20 @@
 FROM ubuntu:latest
 
 # NOTE : Comment the "export http-s_proxy ..." lines if you don't need to go through a proxy
-#        If you need it, replace the {username} and {password} fields
+#        If you need it, replace the {username}, {password}, {proxy} and {port} fields
+# TODO : export http-s_proxy
 
 ### PREQUISITIES ###
 # Install curl, wget and apache2 using apt-get #
-RUN export http_proxy=http://{username}:{password}@{proxy}:{port} \
-&& export https_proxy=http://{username}:{password}@{proxy}:{port} \
+RUN export http_proxy=http://username:password@proxy:port \
+&& export https_proxy=http://username:password@proxy:port \
 && apt-get update \
 && apt-get install -y curl \
         unzip \
         apache2
 # Install mongodb using apt-get then suppress the archive #
-RUN export http_proxy=http://{username}:{password}@{proxy}:{port} \
-&& export https_proxy=http://{username}:{password}@{proxy}:{port} \
+RUN export http_proxy=http://username:password@proxy:port \
+&& export https_proxy=http://username:password@proxy:port \
 && apt-get update \
 && apt-get install -y mongodb \
 && rm -rf /var/lib/apt/lists/*
@@ -22,8 +23,8 @@ RUN export http_proxy=http://{username}:{password}@{proxy}:{port} \
 # Create inkScope project folder #
 WORKDIR /var/www/
 RUN mkdir inkscope/ \
-&& export http_proxy=http://{username}:{password}@{proxy}:{port} \
-&& export https_proxy=http://{username}:{password}@{proxy}:{port} \
+&& export http_proxy=http://username:password@proxy:port \
+&& export https_proxy=http://username:password@proxy:port \
 && curl -LO "https://github.com/inkscope/inkscope/archive/master.zip" \
 && unzip master.zip \
 && mv inkscope-master/* ./inkscope/ \
@@ -50,20 +51,20 @@ RUN a2enmod proxy_http \
 
 ### INSTALLATION OF INKSCOPECTRL ###
 # Install mod-wgsi for Apache and make sure the container has the latest version of pip # 
-RUN export http_proxy=http://{username}:{password}@{proxy}:{port} \
-&& export https_proxy=http://{username}:{password}@{proxy}:{port} \
+RUN export http_proxy=http://username:password@proxy:port \
+&& export https_proxy=http://username:password@proxy:port \
 && apt-get update \
 && apt-get install -y libapache2-mod-wsgi \
         python-pip \
         python-requests \
 && easy_install -U pip
 # Install Python dependencies #
-RUN export http_proxy=http://{username}:{password}@{proxy}:{port} \
-&& export https_proxy=http://{username}:{password}@{proxy}:{port} \
+RUN export http_proxy=http://username:password@proxy:port \
+&& export https_proxy=http://username:password@proxy:port \
 && pip install simplejson \
         pymongo \
         flask
-# Create directories for configuration files #
+  # Create directories for configuration files #
 RUN mkdir -pv /opt/inkscope/etc /opt/inkscope/bin
 WORKDIR /opt/inkscope/
 # Please make sure you have modified inkscope-template.conf correctly
@@ -76,13 +77,41 @@ RUN cp /var/www/inkscope/inkscope-template.conf etc/inkscope.conf \
 # Create the admin user ("system" and all capabilities) #
 # User creation fields have to match with those in inkscope-template.conf
 # And the "radosgw_admin" should match the ceph config parameter rgw_admin_entry (default is admin)
-RUN export http_proxy=http://{username}:{password}@{proxy}:{port} \
-&& export https_proxy=http://{username}:{password}@{proxy}:{port} \
+RUN export http_proxy=http://username:password@proxy:port \
+&& export https_proxy=http://username:password@proxy:port \
 && apt-get update \
 && apt-get install -y radosgw
 # Need to set monitors and ceph/radosgw confs
 #&& radosgw-admin user create --uid=test --display-name="test for docker" --email=test@test.com --system --caps "usage=*; users=*; metadata=*; buckets=*" --access-key=myaccesskey --secret=mysecretkey
 ### END OF INKSCOPECTRL INSTALLATION ###
 
+### INSTALLATION OF SHELLINABOX (OPTIONAL) ###
+# Note : shellinabox adds a console to inkScope
+WORKDIR /etc/default/
+# Dowload shellinabox #
+RUN export http_proxy=http://username:password@proxy:port \
+&& export https_proxy=http://username:password@proxy:port \
+&& apt-get update \
+&& apt-get install -y shellinabox
+#Modify the last line of shellinabox configuration file #
+RUN cp /etc/default/shellinabox /etc/default/shellinabox.tmp \
+&& head -n -1 shellinabox.tmp > shellinabox \
+&& echo 'SHELLINABOX_ARGS="--no-beep -t"' >> shellinabox \
+&& rm shellinabox.tmp
+#Uncomment this if you need to restart the service #
+#RUN service shellinabox restart
 
-WORKDIR ~/
+# Enable shellinabox #
+# Replace {hostname} with the host where shell in a box is installed
+WORKDIR /etc/apache2/sites-available/
+RUN cp inkScope.conf inkScope.conf.tmp \
+&& head -n -3 inkScope.conf.tmp > inkScope.conf \
+&& echo '    ProxyPass /shell http://hostname:4200/' >> inkScope.conf \
+&& tail -n 3 inkScope.conf.tmp >> inkScope.conf \
+&& rm inkScope.conf.tmp \
+&& service apache2 restart
+### END OF SHELLINABOX INSTALLATION ###
+
+
+
+WORKDIR /
